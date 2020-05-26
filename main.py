@@ -6,8 +6,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.graphics import Color, Ellipse, Line, Rectangle, InstructionGroup
 from kivy.core.window import Window
 
-from PIL import Image
-
 from actions import Actions
 
 import math
@@ -27,7 +25,7 @@ class QuickSketchWidget(Widget):
         super(QuickSketchWidget, self).__init__(**kwargs)
         self.config_keyboard()
         Window.bind(mouse_pos=self.on_mouse_pos)
-
+        
         self.background_color = list(COLOR_WHITE) + [1]
         
         self.text_input = text_input
@@ -91,7 +89,7 @@ class QuickSketchWidget(Widget):
                     self.remove_widget(self.curr_label)
                 else:
                     self.is_placing_text = True
-            
+                
                 label = Label(pos=(pos[0] - 40, pos[1] - 40), text=self.text, color=list(self.color) + [1],
                               font_size=self.font_size)
                 self.curr_label = label
@@ -99,55 +97,49 @@ class QuickSketchWidget(Widget):
             else:
                 instr = InstructionGroup()
                 instr.add(Color(*self.color))
-            
+                
                 if self.is_adding_shape:
                     self.canvas.remove(self.curr_shape)
                 else:
                     self.is_adding_shape = True
-            
+                
                 if self.action == Actions.LINE:
                     instr.add(Line(points=[self.action_start_pos, pos], width=self.stroke_width / 2))
-            
+                
                 elif self.action == Actions.FREEHAND:
                     self.line_points.append(pos)
                     instr.add(Line(points=self.line_points, width=self.stroke_width / 2))
-            
+                
                 elif self.action == Actions.TEXT:
                     pass
-            
+                
                 else:  # BOX or ELLIPSE
                     w = pos[0] - self.action_start_pos[0]
                     h = pos[1] - self.action_start_pos[1]
-                
+                    
                     sw = math.copysign(1, w)
                     sh = math.copysign(1, h)
-                
+                    
                     if self.draw_uniformly:
                         x = min(abs(w), abs(h))
                         w = sw * x
                         h = sh * x
-                
+                    
                     start_x = self.action_start_pos[0]
                     start_y = self.action_start_pos[1]
-                
-                    if self.action == Actions.BOX:
-                        instr.add(Rectangle(pos=(start_x, start_y), size=(w, h)))
-                    else:
-                        instr.add(Ellipse(pos=(start_x, start_y), size=(w, h)))
-                
-                    if not self.object_fill:
-                        w += -sw * 2 * self.stroke_width
-                        start_x += sw * self.stroke_width
                     
-                        h += -sh * 2 * self.stroke_width
-                        start_y += sh * self.stroke_width
-                    
-                        instr.add(Color(*COLOR_WHITE))
+                    if self.object_fill:
                         if self.action == Actions.BOX:
                             instr.add(Rectangle(pos=(start_x, start_y), size=(w, h)))
                         else:
                             instr.add(Ellipse(pos=(start_x, start_y), size=(w, h)))
-            
+                    
+                    else:
+                        if self.action == Actions.BOX:
+                            instr.add(Line(rectangle=(start_x, start_y, w, h), width=self.stroke_width / 2))
+                        else:
+                            instr.add(Line(ellipse=(start_x, start_y, w, h), width=self.stroke_width / 2))
+                
                 self.curr_shape = instr
                 self.canvas.add(instr)
     
@@ -175,7 +167,7 @@ class QuickSketchWidget(Widget):
                 self.select()
             elif key == 'escape':
                 self.escape()
-                
+            
             self.draw_object()
         
         elif 'alt' in modifiers:
@@ -186,15 +178,7 @@ class QuickSketchWidget(Widget):
             print("saving image")
             
             name = "screenshot.jpg"
-            
-            # Window.screenshot(name=name)
-            
             self.export_as_image().save(name)
-            
-            # img = Image.open("screenshot0001.jpg")
-            # w, h = img.size
-            #
-            # cropped = img.crop((0, 0, w, h - self.text_input.height))
             
             subprocess.run(
                 ["osascript", "-e", 'set the clipboard to (read (POSIX file "screenshot.jpg") as JPEG picture)'])
@@ -247,7 +231,7 @@ class QuickSketchWidget(Widget):
                             self.add_widget(item)
                         else:
                             self.canvas.add(item)
-                            
+                
                 self.draw_object()
         return True
     
@@ -307,7 +291,7 @@ class QuickSketchWidget(Widget):
 class QuickSketchApp(App):
     def build(self):
         box = BoxLayout(orientation='vertical')
-        text_input = TextInput(size_hint=(1,None))
+        text_input = TextInput(size_hint=(1, None))
         text_input.height = 50
         sketch = QuickSketchWidget(text_input)
         sketch.bind(size=self._update_rect, pos=self._update_rect)
@@ -319,10 +303,11 @@ class QuickSketchApp(App):
         box.add_widget(sketch)
         box.add_widget(text_input)
         return box
-
+    
     def _update_rect(self, instance, value):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
+
 
 if __name__ == '__main__':
     QuickSketchApp().run()
