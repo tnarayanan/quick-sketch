@@ -38,6 +38,7 @@ class QuickSketchWidget(Widget):
         
         self.last_mouse_pos = ()
         self.action_start_pos = ()
+        self.prev_pos = ()
         
         self.object_stack = []
         self.undo_buffer = []
@@ -59,7 +60,7 @@ class QuickSketchWidget(Widget):
         self.font_size = 30
         
         self.number_str = ""
-    
+        
     def config_keyboard(self):
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
         self._keyboard.bind(on_key_down=self._on_keyboard_down)
@@ -87,7 +88,42 @@ class QuickSketchWidget(Widget):
         if self.action == Actions.SELECT:
             pass
         else:
-            if self.action == Actions.PLACE_TEXT:
+            if self.action == Actions.PLACE_COPY:
+                if self.is_adding_shape:
+                    self.canvas.remove(self.curr_shape)
+                else:
+                    self.is_adding_shape = True
+                
+                instr = InstructionGroup()
+                for child in self.curr_shape.children:
+                    if type(child) is Color:
+                        instr.add(Color(rgba=child.rgba))
+                    elif type(child) is Line:
+                        pts = []
+                        for i in range(len(child.points)):
+                            if i%2 == 0:
+                                # x
+                                pts.append(child.points[i] -self.prev_pos[0] + pos[0])
+                            else:
+                                # y
+                                pts.append(child.points[i] - self.prev_pos[1] + pos[1])
+                                
+                        if len(pts) <= 8:
+                            pts += [pts[0]]
+                            pts += [pts[1]]
+                        instr.add(Line(points=pts, width=child.width))
+                        # print(pts)
+                    elif type(child) is Ellipse:
+                        instr.add(Ellipse(pos=pos, size=child.size))
+                    elif type(child) is Rectangle:
+                        instr.add(Rectangle(pos=pos, size=child.size))
+                    
+                self.prev_pos = pos
+                
+
+                self.curr_shape = instr
+                self.canvas.add(instr)
+            elif self.action == Actions.PLACE_TEXT:
                 if self.is_placing_text:
                     self.remove_widget(self.curr_label)
                 else:
@@ -239,6 +275,16 @@ class QuickSketchWidget(Widget):
             else:
                 if key == 'escape':
                     self.escape()
+                elif key == 'c':
+                    if len(self.object_stack) > 0:
+                        if type(self.object_stack[-1]) is Label:
+                            self.text = self.object_stack[-1].text
+                            self.action = Actions.PLACE_TEXT
+                        else:
+                            self.curr_shape = InstructionGroup()
+                            self.curr_shape = self.object_stack[-1]
+                            self.action = Actions.PLACE_COPY
+                            self.prev_pos = self.action_start_pos
                 elif key == 'q':
                     self.stroke_width += 2
                 elif key == 'a':
@@ -277,7 +323,7 @@ class QuickSketchWidget(Widget):
     def _on_keyboard_up(self, keyboard, keycode):
         if keycode[1] == 'shift':
             self.draw_uniformly = False
-        elif keycode[1] == 'c':
+        elif keycode[1] == '`':
             self.select()
         elif keycode[1] == 'alt':
             if len(self.number_str) > 0:
@@ -286,7 +332,7 @@ class QuickSketchWidget(Widget):
                 self.action = Actions.PLACE_TEXT
     
     def select(self, clear_undo_buffer=True):
-        self.action_start_pos = None
+        # self.action_start_pos = None
         self.is_adding_shape = False
         self.is_placing_text = False
         self.line_points = []

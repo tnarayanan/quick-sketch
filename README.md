@@ -15,7 +15,7 @@ Key | Action
 `b` | Box
 `s` | Line
 `v` | Arrow
-`c` (hold) | Freehand
+``` ` ``` (hold) | Freehand
 `t` | Text
 `escape` | Exit object addition
 `control` | Copy the image to clipboard (macOS only)
@@ -24,6 +24,7 @@ Key | Action
 Key | Action
 ---|---
 `shift` (hold) | Make uniform shapes (circles and squares)
+`c` | Duplicate previous object
 `q` | Increase stroke width
 `a` | Decrease stroke width
 `f` | Toggle object fill

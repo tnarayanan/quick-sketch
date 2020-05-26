@@ -7,6 +7,7 @@ class Actions:
     FREEHAND = 5
     TEXT = 6
     PLACE_TEXT = 7
+    PLACE_COPY = 8
     
     keymap = {
         'spacebar': SELECT,
@@ -14,6 +15,6 @@ class Actions:
         'b': BOX,
         's': LINE,
         'v': ARROW,
-        'c': FREEHAND,
+        '`': FREEHAND,
         't': TEXT
     }
