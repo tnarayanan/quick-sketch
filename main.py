@@ -2,8 +2,11 @@ from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout
 from kivy.graphics import Color, Ellipse, Line, Rectangle, InstructionGroup
 from kivy.core.window import Window
+
+from PIL import Image
 
 from actions import Actions
 
@@ -20,14 +23,15 @@ COLOR_WHITE = (1, 1, 1)
 
 class QuickSketchWidget(Widget):
     
-    def __init__(self, **kwargs):
+    def __init__(self, text_input, **kwargs):
         super(QuickSketchWidget, self).__init__(**kwargs)
         self.config_keyboard()
         Window.bind(mouse_pos=self.on_mouse_pos)
+
+        self.background_color = list(COLOR_WHITE) + [1]
         
-        self.text_input = TextInput(pos=(0, 0), size=(750, 50))
+        self.text_input = text_input
         self.text_input.multiline = False
-        self.add_widget(self.text_input)
         self.text_input.bind(on_text_validate=self.on_text)
         self.text_input.bind(focus=self.on_text_focus)
         
@@ -37,8 +41,10 @@ class QuickSketchWidget(Widget):
         self.last_mouse_pos = ()
         self.action_start_pos = ()
         
-        self.shapes = []
+        self.object_stack = []
         self.undo_buffer = []
+        
+        self.curr_shape = None
         self.is_adding_shape = False
         
         self.stroke_width = 1
@@ -48,13 +54,9 @@ class QuickSketchWidget(Widget):
         self.line_points = []
         
         self.text = ""
-        self.labels = []
+        self.curr_label = None
         self.is_placing_text = False
         self.font_size = 30
-
-    # def reposition_text_input(self, root, *args):
-    #     self.b1.x = root.x
-    #     self.b1.center_y = root.center_y
     
     def config_keyboard(self):
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
@@ -67,7 +69,7 @@ class QuickSketchWidget(Widget):
         self.escape()
         self.config_keyboard()
         self.action = Actions.PLACE_TEXT
-
+    
     def on_text_focus(self, instance, value):
         if not value:
             # user defocused
@@ -77,73 +79,76 @@ class QuickSketchWidget(Widget):
     def on_mouse_pos(self, window, position):
         self.last_mouse_pos = position
         # print(position)
+        self.draw_object()
+    
+    def draw_object(self):
+        pos = self.last_mouse_pos
         if self.action == Actions.SELECT:
             pass
         else:
             if self.action == Actions.PLACE_TEXT:
                 if self.is_placing_text:
-                    item = self.labels.pop(-1)
-                    self.remove_widget(item)
+                    self.remove_widget(self.curr_label)
                 else:
                     self.is_placing_text = True
-    
-                label = Label(pos=(position[0]-40, position[1]-40), text=self.text, color=list(self.color)+[1], font_size=self.font_size)
-                self.labels.append(label)
+            
+                label = Label(pos=(pos[0] - 40, pos[1] - 40), text=self.text, color=list(self.color) + [1],
+                              font_size=self.font_size)
+                self.curr_label = label
                 self.add_widget(label)
             else:
                 instr = InstructionGroup()
                 instr.add(Color(*self.color))
-    
+            
                 if self.is_adding_shape:
-                    item = self.shapes.pop(-1)
-                    self.canvas.remove(item)
+                    self.canvas.remove(self.curr_shape)
                 else:
                     self.is_adding_shape = True
-                
+            
                 if self.action == Actions.LINE:
-                    instr.add(Line(points=[self.action_start_pos, position], width=self.stroke_width / 2))
-                
+                    instr.add(Line(points=[self.action_start_pos, pos], width=self.stroke_width / 2))
+            
                 elif self.action == Actions.FREEHAND:
-                    self.line_points.append(position)
+                    self.line_points.append(pos)
                     instr.add(Line(points=self.line_points, width=self.stroke_width / 2))
-                    
+            
                 elif self.action == Actions.TEXT:
                     pass
-                
+            
                 else:  # BOX or ELLIPSE
-                    w = position[0] - self.action_start_pos[0]
-                    h = position[1] - self.action_start_pos[1]
-                    
+                    w = pos[0] - self.action_start_pos[0]
+                    h = pos[1] - self.action_start_pos[1]
+                
                     sw = math.copysign(1, w)
                     sh = math.copysign(1, h)
-                    
+                
                     if self.draw_uniformly:
                         x = min(abs(w), abs(h))
                         w = sw * x
                         h = sh * x
-                    
+                
                     start_x = self.action_start_pos[0]
                     start_y = self.action_start_pos[1]
-                    
+                
                     if self.action == Actions.BOX:
                         instr.add(Rectangle(pos=(start_x, start_y), size=(w, h)))
                     else:
                         instr.add(Ellipse(pos=(start_x, start_y), size=(w, h)))
-                    
+                
                     if not self.object_fill:
                         w += -sw * 2 * self.stroke_width
                         start_x += sw * self.stroke_width
-                        
+                    
                         h += -sh * 2 * self.stroke_width
                         start_y += sh * self.stroke_width
-                        
+                    
                         instr.add(Color(*COLOR_WHITE))
                         if self.action == Actions.BOX:
                             instr.add(Rectangle(pos=(start_x, start_y), size=(w, h)))
                         else:
                             instr.add(Ellipse(pos=(start_x, start_y), size=(w, h)))
-                
-                self.shapes.append(instr)
+            
+                self.curr_shape = instr
                 self.canvas.add(instr)
     
     def _keyboard_closed(self):
@@ -170,30 +175,32 @@ class QuickSketchWidget(Widget):
                 self.select()
             elif key == 'escape':
                 self.escape()
+                
+            self.draw_object()
         
         elif 'alt' in modifiers:
             if key == 'x':
-                self.canvas.clear()
-                self.shapes = []
-                self.undo_buffer = []
-                self.line_points = []
-                self.is_adding_shape = False
-                self.is_placing_text = False
-                self.add_widget(self.text_input)
+                self.reset()
         
         elif 'ctrl' in modifiers:
             print("saving image")
             
             name = "screenshot.jpg"
             
-            self.remove_widget(self.text_input)
+            # Window.screenshot(name=name)
             
-            Window.screenshot(name=name)
+            self.export_as_image().save(name)
+            
+            # img = Image.open("screenshot0001.jpg")
+            # w, h = img.size
+            #
+            # cropped = img.crop((0, 0, w, h - self.text_input.height))
+            
             subprocess.run(
-                ["osascript", "-e", 'set the clipboard to (read (POSIX file "screenshot0001.jpg") as JPEG picture)'])
-            os.remove("screenshot0001.jpg")
+                ["osascript", "-e", 'set the clipboard to (read (POSIX file "screenshot.jpg") as JPEG picture)'])
+            os.remove("screenshot.jpg")
             
-            self.add_widget(self.text_input)
+            print("saved")
         
         else:
             # action
@@ -224,15 +231,24 @@ class QuickSketchWidget(Widget):
                 elif key == 'f':
                     self.object_fill = not self.object_fill
                 elif key == 'u':
-                    if len(self.shapes) > 0:
-                        item = self.shapes.pop(-1)
+                    if len(self.object_stack) > 0:
+                        item = self.object_stack.pop(-1)
                         self.undo_buffer.append(item)
-                        self.canvas.remove(item)
+                        
+                        if type(item) is Label:
+                            self.remove_widget(item)
+                        else:
+                            self.canvas.remove(item)
                 elif key == 'r':
                     if len(self.undo_buffer) > 0:
                         item = self.undo_buffer.pop(-1)
-                        self.shapes.append(item)
-                        self.canvas.add(item)
+                        self.object_stack.append(item)
+                        if type(item) is Label:
+                            self.add_widget(item)
+                        else:
+                            self.canvas.add(item)
+                            
+                self.draw_object()
         return True
     
     def _on_keyboard_up(self, keyboard, keycode):
@@ -241,32 +257,72 @@ class QuickSketchWidget(Widget):
         elif keycode[1] == 'c':
             self.select()
     
-    def select(self):
+    def select(self, clear_undo_buffer=True):
         self.action_start_pos = None
         self.is_adding_shape = False
         self.is_placing_text = False
         self.line_points = []
+        
+        if clear_undo_buffer:
+            self.undo_buffer = []
+        
         self.action = Actions.SELECT
+        
+        if self.curr_shape is not None:
+            self.object_stack.append(self.curr_shape)
+        elif self.curr_label is not None:
+            self.object_stack.append(self.curr_label)
+        
+        self.curr_shape = None
+        self.curr_label = None
     
     def escape(self):
         # remove last object
         if self.is_adding_shape:
-            item = self.shapes.pop(-1)
-            self.canvas.remove(item)
+            self.canvas.remove(self.curr_shape)
+            self.curr_shape = None
         
         if self.is_placing_text:
-            item = self.labels.pop(-1)
-            self.remove_widget(item)
+            self.remove_widget(self.curr_label)
+            self.curr_label = None
         
-        self.select()
+        self.select(clear_undo_buffer=False)
         self.action = Actions.SELECT
+    
+    def reset(self):
+        self.canvas.clear()
+        self.curr_shape = None
+        self.curr_label = None
+        self.undo_buffer = []
+        self.line_points = []
+        self.is_adding_shape = False
+        self.is_placing_text = False
+        
+        with self.canvas:
+            Color(COLOR_WHITE)
+            Rectangle(size=self.size, pos=self.pos)
+            Color(*self.color)
 
 
 class QuickSketchApp(App):
     def build(self):
-        Window.clearcolor = (1, 1, 1, 1)
-        return QuickSketchWidget()
+        box = BoxLayout(orientation='vertical')
+        text_input = TextInput(size_hint=(1,None))
+        text_input.height = 50
+        sketch = QuickSketchWidget(text_input)
+        sketch.bind(size=self._update_rect, pos=self._update_rect)
+        
+        with sketch.canvas.before:
+            Color(COLOR_WHITE)
+            self.rect = Rectangle(size=sketch.size, pos=sketch.pos)
+        
+        box.add_widget(sketch)
+        box.add_widget(text_input)
+        return box
 
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
 
 if __name__ == '__main__':
     QuickSketchApp().run()
