@@ -60,7 +60,7 @@ class QuickSketchWidget(Widget):
         self.font_size = 30
         
         self.number_str = ""
-        
+    
     def config_keyboard(self):
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
         self._keyboard.bind(on_key_down=self._on_keyboard_down)
@@ -96,31 +96,28 @@ class QuickSketchWidget(Widget):
                 
                 instr = InstructionGroup()
                 for child in self.curr_shape.children:
-                    if type(child) is Color:
-                        instr.add(Color(rgba=child.rgba))
-                    elif type(child) is Line:
+                    instr.add(Color(*self.color))
+                    if type(child) is Line:
                         pts = []
                         for i in range(len(child.points)):
-                            if i%2 == 0:
+                            if i % 2 == 0:
                                 # x
-                                pts.append(child.points[i] -self.prev_pos[0] + pos[0])
+                                pts.append(child.points[i] - self.prev_pos[0] + pos[0])
                             else:
                                 # y
                                 pts.append(child.points[i] - self.prev_pos[1] + pos[1])
-                                
+                        
                         if len(pts) <= 8:
                             pts += [pts[0]]
                             pts += [pts[1]]
-                        instr.add(Line(points=pts, width=child.width))
-                        # print(pts)
+                        instr.add(Line(points=pts, width=self.stroke_width / 2))
                     elif type(child) is Ellipse:
-                        instr.add(Ellipse(pos=pos, size=child.size))
+                        instr.add(Ellipse(pos=pos, size=self.stroke_width / 2))
                     elif type(child) is Rectangle:
-                        instr.add(Rectangle(pos=pos, size=child.size))
-                    
+                        instr.add(Rectangle(pos=pos, size=self.stroke_width / 2))
+                
                 self.prev_pos = pos
                 
-
                 self.curr_shape = instr
                 self.canvas.add(instr)
             elif self.action == Actions.PLACE_TEXT:
