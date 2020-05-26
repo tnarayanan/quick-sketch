@@ -95,6 +95,7 @@ class QuickSketchWidget(Widget):
                     self.is_adding_shape = True
                 
                 instr = InstructionGroup()
+                
                 for child in self.curr_shape.children:
                     instr.add(Color(*self.color))
                     if type(child) is Line:
@@ -110,16 +111,18 @@ class QuickSketchWidget(Widget):
                         if len(pts) <= 8:
                             pts += [pts[0]]
                             pts += [pts[1]]
+                        
                         instr.add(Line(points=pts, width=self.stroke_width / 2))
                     elif type(child) is Ellipse:
-                        instr.add(Ellipse(pos=pos, size=self.stroke_width / 2))
+                        instr.add(Ellipse(pos=pos, size=child.size))
                     elif type(child) is Rectangle:
-                        instr.add(Rectangle(pos=pos, size=self.stroke_width / 2))
+                        instr.add(Rectangle(pos=pos, size=child.size))
                 
                 self.prev_pos = pos
                 
                 self.curr_shape = instr
                 self.canvas.add(instr)
+            
             elif self.action == Actions.PLACE_TEXT:
                 if self.is_placing_text:
                     self.remove_widget(self.curr_label)
@@ -273,12 +276,12 @@ class QuickSketchWidget(Widget):
                 if key == 'escape':
                     self.escape()
                 elif key == 'c':
+                    self.select()
                     if len(self.object_stack) > 0:
                         if type(self.object_stack[-1]) is Label:
                             self.text = self.object_stack[-1].text
                             self.action = Actions.PLACE_TEXT
                         else:
-                            self.curr_shape = InstructionGroup()
                             self.curr_shape = self.object_stack[-1]
                             self.action = Actions.PLACE_COPY
                             self.prev_pos = self.action_start_pos
@@ -341,8 +344,11 @@ class QuickSketchWidget(Widget):
         
         if self.curr_shape is not None:
             self.object_stack.append(self.curr_shape)
+            print("Appending shape")
+            self.action_start_pos = self.last_mouse_pos
         elif self.curr_label is not None:
             self.object_stack.append(self.curr_label)
+            print("Appending label")
         
         self.curr_shape = None
         self.curr_label = None
@@ -373,6 +379,8 @@ class QuickSketchWidget(Widget):
             Color(COLOR_WHITE)
             Rectangle(size=self.size, pos=self.pos)
             Color(*self.color)
+        
+        self.select()
 
 
 class QuickSketchApp(App):
