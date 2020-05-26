@@ -14,12 +14,15 @@ Key | Action
 `e` | Ellipse
 `b` | Box
 `s` | Line
-`c` | Freehand
+`c` (hold) | Freehand
+`t` | Text
 `escape` | Exit object addition
+`control` | Copy the image to clipboard (macOS only)
 
 ### Secondary actions
 Key | Action
 ---|---
+`shift` (hold) | Make uniform shapes (circles and squares)
 `q` | Increase stroke width
 `a` | Decrease stroke width
 `f` | Toggle object fill
@@ -28,10 +31,18 @@ Key | Action
 `alt+x` | Clear screen
 
 ### Colors
-Key | Action
+Key | Color
 ---|---
 `shift+z` | Black
 `shift+w` | White
 `shift+r` | Red
 `shift+g` | Green
 `shift+b` | Blue
+
+## Dependencies
+Quick Sketch was developed on `Python 3.7.7`, and requires `kivy 1.11.1`. It has not been tested with other
+versions of `python` or `kivy`.
+
+## Compatibility
+Currently, Quick Sketch only works on macOS because of the use of an Applescript to copy an image to the clipboard.
+However, I plan on making it compatible for Windows and Linux as well.

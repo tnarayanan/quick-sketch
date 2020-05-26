@@ -4,6 +4,8 @@ class Actions:
     BOX = 2
     LINE = 3
     FREEHAND = 4
+    TEXT = 5
+    PLACE_TEXT = 6
     
     keymap = {
         'v': SELECT,
@@ -11,5 +13,6 @@ class Actions:
         'e': ELLIPSE,
         'b': BOX,
         's': LINE,
-        'c': FREEHAND
+        'c': FREEHAND,
+        't': TEXT
     }
