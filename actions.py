@@ -3,16 +3,17 @@ class Actions:
     ELLIPSE = 1
     BOX = 2
     LINE = 3
-    FREEHAND = 4
-    TEXT = 5
-    PLACE_TEXT = 6
+    ARROW = 4
+    FREEHAND = 5
+    TEXT = 6
+    PLACE_TEXT = 7
     
     keymap = {
-        'v': SELECT,
         'spacebar': SELECT,
         'e': ELLIPSE,
         'b': BOX,
         's': LINE,
+        'v': ARROW,
         'c': FREEHAND,
         't': TEXT
     }

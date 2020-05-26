@@ -51,10 +51,14 @@ class QuickSketchWidget(Widget):
         
         self.line_points = []
         
+        self.double_arrow = False
+        
         self.text = ""
         self.curr_label = None
         self.is_placing_text = False
         self.font_size = 30
+        
+        self.number_str = ""
     
     def config_keyboard(self):
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
@@ -76,7 +80,6 @@ class QuickSketchWidget(Widget):
     
     def on_mouse_pos(self, window, position):
         self.last_mouse_pos = position
-        # print(position)
         self.draw_object()
     
     def draw_object(self):
@@ -105,6 +108,38 @@ class QuickSketchWidget(Widget):
                 
                 if self.action == Actions.LINE:
                     instr.add(Line(points=[self.action_start_pos, pos], width=self.stroke_width / 2))
+                
+                elif self.action == Actions.ARROW:
+                    instr.add(Line(points=[self.action_start_pos, pos], width=self.stroke_width / 2))
+                    
+                    dy = self.action_start_pos[1] - pos[1]
+                    dx = self.action_start_pos[0] - pos[0]
+                    angle = math.degrees(math.atan2(dy, dx))
+                    length = math.sqrt(dy ** 2 + dx ** 2)
+                    
+                    max_arrow_length = 40
+                    
+                    # Transformation of the sigmoid function
+                    arrow_length = 2 * max_arrow_length * (math.e ** (length / 100)) / (
+                            math.e ** (length / 100) + 1) - max_arrow_length
+                    
+                    pos_angle_pt = (pos[0] + arrow_length * math.cos(math.radians(angle + 30)),
+                                    pos[1] + arrow_length * math.sin(math.radians(angle + 30)))
+                    neg_angle_pt = (pos[0] + arrow_length * math.cos(math.radians(angle - 30)),
+                                    pos[1] + arrow_length * math.sin(math.radians(angle - 30)))
+                    
+                    instr.add(Line(points=[pos, pos_angle_pt], width=self.stroke_width / 2))
+                    instr.add(Line(points=[pos, neg_angle_pt], width=self.stroke_width / 2))
+                    
+                    if self.double_arrow:
+                        angle += 180
+                        pos_angle_pt = (self.action_start_pos[0] + arrow_length * math.cos(math.radians(angle + 30)),
+                                        self.action_start_pos[1] + arrow_length * math.sin(math.radians(angle + 30)))
+                        neg_angle_pt = (self.action_start_pos[0] + arrow_length * math.cos(math.radians(angle - 30)),
+                                        self.action_start_pos[1] + arrow_length * math.sin(math.radians(angle - 30)))
+                        
+                        instr.add(Line(points=[self.action_start_pos, pos_angle_pt], width=self.stroke_width / 2))
+                        instr.add(Line(points=[self.action_start_pos, neg_angle_pt], width=self.stroke_width / 2))
                 
                 elif self.action == Actions.FREEHAND:
                     self.line_points.append(pos)
@@ -173,6 +208,8 @@ class QuickSketchWidget(Widget):
         elif 'alt' in modifiers:
             if key == 'x':
                 self.reset()
+            elif key.isdigit() or (len(self.number_str) == 0 and key == '-'):
+                self.number_str += key
         
         elif 'ctrl' in modifiers:
             print("saving image")
@@ -214,6 +251,8 @@ class QuickSketchWidget(Widget):
                         self.font_size -= 5
                 elif key == 'f':
                     self.object_fill = not self.object_fill
+                elif key == 'g':
+                    self.double_arrow = not self.double_arrow
                 elif key == 'u':
                     if len(self.object_stack) > 0:
                         item = self.object_stack.pop(-1)
@@ -240,6 +279,11 @@ class QuickSketchWidget(Widget):
             self.draw_uniformly = False
         elif keycode[1] == 'c':
             self.select()
+        elif keycode[1] == 'alt':
+            if len(self.number_str) > 0:
+                self.text = self.number_str
+                self.number_str = ""
+                self.action = Actions.PLACE_TEXT
     
     def select(self, clear_undo_buffer=True):
         self.action_start_pos = None

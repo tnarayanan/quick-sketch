@@ -10,10 +10,11 @@ the home row, while their right hand is on the trackpad or mouse.
 ### Primary actions
 Key | Action
 ---|---
-`v` or `space` | Normal, confirm an object
+`space` | Normal, confirm an object
 `e` | Ellipse
 `b` | Box
 `s` | Line
+`v` | Arrow
 `c` (hold) | Freehand
 `t` | Text
 `escape` | Exit object addition
@@ -26,6 +27,8 @@ Key | Action
 `q` | Increase stroke width
 `a` | Decrease stroke width
 `f` | Toggle object fill
+`g` | Toggle single/double pointed arrow
+`alt` (hold) | Shorthand for adding numbers
 `u` | Undo
 `r` | Redo
 `alt+x` | Clear screen
