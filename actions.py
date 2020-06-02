@@ -4,16 +4,18 @@ class Actions:
     BOX = 2
     LINE = 3
     ARROW = 4
-    FREEHAND = 5
-    TEXT = 6
-    PLACE_TEXT = 7
-    PLACE_COPY = 8
+    BEZIER = 5
+    FREEHAND = 6
+    TEXT = 7
+    PLACE_TEXT = 8
+    PLACE_COPY = 9
     
     keymap = {
         'spacebar': SELECT,
         'e': ELLIPSE,
         'b': BOX,
         's': LINE,
+        'w': BEZIER,
         'v': ARROW,
         '`': FREEHAND,
         't': TEXT

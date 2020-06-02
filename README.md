@@ -14,6 +14,7 @@ Key | Action
 `e` | Ellipse
 `b` | Box
 `s` | Line
+`w` | Bezier curve
 `v` | Arrow
 ``` ` ``` (hold) | Freehand
 `t` | Text

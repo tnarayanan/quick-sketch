@@ -3,7 +3,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
-from kivy.graphics import Color, Ellipse, Line, Rectangle, InstructionGroup
+from kivy.graphics import Color, Ellipse, Line, Rectangle, InstructionGroup, Bezier
 from kivy.core.window import Window
 
 from actions import Actions
@@ -45,6 +45,7 @@ class QuickSketchWidget(Widget):
         
         self.curr_shape = None
         self.is_adding_shape = False
+        self.bezier_points = []
         
         self.stroke_width = 1
         self.object_fill = True
@@ -144,6 +145,12 @@ class QuickSketchWidget(Widget):
                 
                 if self.action == Actions.LINE:
                     instr.add(Line(points=[self.action_start_pos, pos], width=self.stroke_width / 2))
+                
+                elif self.action == Actions.BEZIER:
+                    self.bezier_points[-2] = pos[0]
+                    self.bezier_points[-1] = pos[1]
+                    
+                    instr.add(Line(bezier=self.bezier_points, width=self.stroke_width/2))
                 
                 elif self.action == Actions.ARROW:
                     instr.add(Line(points=[self.action_start_pos, pos], width=self.stroke_width / 2))
@@ -271,6 +278,12 @@ class QuickSketchWidget(Widget):
                     self.select()
                 elif Actions.keymap[key] == Actions.TEXT:
                     self.text_input.focus = True
+                elif Actions.keymap[key] == Actions.BEZIER:
+                    if len(self.bezier_points) == 0:
+                        self.bezier_points = 2*[self.action_start_pos[0], self.action_start_pos[1]]
+                    else:
+                        self.bezier_points += [self.action_start_pos[0], self.action_start_pos[1]]
+                        
             
             else:
                 if key == 'escape':
@@ -336,6 +349,7 @@ class QuickSketchWidget(Widget):
         self.is_adding_shape = False
         self.is_placing_text = False
         self.line_points = []
+        self.bezier_points = []
         
         if clear_undo_buffer:
             self.undo_buffer = []
@@ -344,11 +358,9 @@ class QuickSketchWidget(Widget):
         
         if self.curr_shape is not None:
             self.object_stack.append(self.curr_shape)
-            print("Appending shape")
             self.action_start_pos = self.last_mouse_pos
         elif self.curr_label is not None:
             self.object_stack.append(self.curr_label)
-            print("Appending label")
         
         self.curr_shape = None
         self.curr_label = None
